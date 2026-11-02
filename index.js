@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import "dotenv/config";
 
 const app = express();
@@ -30,6 +30,12 @@ app.post("/studios", async (req, res) => {
     createdAt: new Date(),
   });
   return res.status(201).send(result);
+});
+
+app.delete("/studios/:id", async (req, res) => {
+  const id = req.params.id;
+  const result = await studiosCollection.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
 });
 
 app.get("/my-listings", async (req, res) => {
