@@ -32,6 +32,12 @@ app.post("/studios", async (req, res) => {
   return res.status(201).send(result);
 });
 
+app.get("/my-listings", async (req, res) => {
+  const email = req.query.email;
+  const listings = await studiosCollection.find({ userEmail: email }).toArray();
+  res.send(listings);
+});
+
 app.get("/", (req, res) => {
   res.send("hello world!");
 });
