@@ -19,7 +19,18 @@ export async function connectToMongoDB() {
   }
 }
 
-connectToMongoDB();
+const connectedClient = await connectToMongoDB();
+const db = connectedClient.db("studiospacedb");
+const studiosCollection = db.collection("studios");
+
+app.post("/studios", async (req, res) => {
+  const studio = req.body;
+  const result = await studiosCollection.insertOne({
+    ...studio,
+    createdAt: new Date(),
+  });
+  return res.status(201).send(result);
+});
 
 app.get("/", (req, res) => {
   res.send("hello world!");
