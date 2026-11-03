@@ -38,6 +38,11 @@ app.delete("/studios/:id", async (req, res) => {
   res.send(result);
 });
 
+app.get("/studios", async (req, res) => {
+  const studio = await studiosCollection.find({}).toArray();
+  res.send(studio);
+});
+
 app.get("/studio/:id", async (req, res) => {
   const { id } = req.params;
   const studio = await studiosCollection.findOne({ _id: new ObjectId(id) });
