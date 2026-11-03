@@ -79,9 +79,33 @@ app.post("/bookings", async (req, res) => {
   const bookingData = req.body;
   const result = await bookingsCollection.insertOne({
     ...bookingData,
+    status: bookingData.status || "Pending",
     bookedAt: new Date(),
   });
   res.status(201).send(result);
+});
+
+app.get("/bookings", async (req, res) => {
+  const { email } = req.query;
+  const query = email ? { userEmail: email } : {};
+  const bookings = await bookingsCollection.find(query).toArray();
+  res.send(bookings);
+});
+
+app.patch("/bookings/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const result = await bookingsCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { status, updatedAt: new Date() } }
+  );
+  res.send(result);
+});
+
+app.delete("/bookings/:id", async (req, res) => {
+  const { id } = req.params;
+  const result = await bookingsCollection.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
 });
 
 app.get("/", (req, res) => {
