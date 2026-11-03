@@ -23,6 +23,7 @@ const connectedClient = await connectToMongoDB();
 const db = connectedClient.db("studiospacedb");
 const studiosCollection = db.collection("studios");
 const bookingsCollection = db.collection("bookings");
+const wishlistCollection = db.collection("wishlist");
 
 app.post("/studios", async (req, res) => {
   const studio = req.body;
@@ -97,7 +98,7 @@ app.patch("/bookings/:id", async (req, res) => {
   const { status } = req.body;
   const result = await bookingsCollection.updateOne(
     { _id: new ObjectId(id) },
-    { $set: { status, updatedAt: new Date() } }
+    { $set: { status, updatedAt: new Date() } },
   );
   res.send(result);
 });
@@ -107,6 +108,32 @@ app.delete("/bookings/:id", async (req, res) => {
   const result = await bookingsCollection.deleteOne({ _id: new ObjectId(id) });
   res.send(result);
 });
+
+app.post("/wishlist", async (req, res) => {
+  const wishlist = req.body;
+  const result = await wishlistCollection.insertOne({
+    ...wishlist,
+    savedAt: new Date(),
+  });
+  res.send(result);
+});
+
+app.get("/wishlist", async (req, res) => {
+  const { email } = req.query;
+  const items = await wishlistCollection.find({ userEmail: email }).toArray();
+  res.send(items);
+});
+
+app.delete("/wishlist", async (req, res) => {
+  const { email, studioId } = req.query;
+  const result = await wishlistCollection.deleteOne({
+    userEmail: email,
+    studioId,
+  });
+  res.send(result);
+});
+
+
 
 app.get("/", (req, res) => {
   res.send("hello world!");
