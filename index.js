@@ -33,13 +33,19 @@ app.post("/studios", async (req, res) => {
 });
 
 app.delete("/studios/:id", async (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
   const result = await studiosCollection.deleteOne({ _id: new ObjectId(id) });
   res.send(result);
 });
 
+app.get("/studio/:id", async (req, res) => {
+  const { id } = req.params;
+  const studio = await studiosCollection.findOne({ _id: new ObjectId(id) });
+  res.send(studio);
+});
+
 app.get("/my-listings", async (req, res) => {
-  const email = req.query.email;
+  const { email } = req.query;
   const listings = await studiosCollection.find({ userEmail: email }).toArray();
   res.send(listings);
 });
