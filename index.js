@@ -22,6 +22,7 @@ export async function connectToMongoDB() {
 const connectedClient = await connectToMongoDB();
 const db = connectedClient.db("studiospacedb");
 const studiosCollection = db.collection("studios");
+const bookingsCollection = db.collection("bookings");
 
 app.post("/studios", async (req, res) => {
   const studio = req.body;
@@ -32,24 +33,9 @@ app.post("/studios", async (req, res) => {
   return res.status(201).send(result);
 });
 
-app.delete("/studios/:id", async (req, res) => {
-  const { id } = req.params;
-  const result = await studiosCollection.deleteOne({ _id: new ObjectId(id) });
-  res.send(result);
-});
-
 app.get("/studios", async (req, res) => {
   const studio = await studiosCollection.find({}).toArray();
   res.send(studio);
-});
-
-app.get("/featured-studios", async (req, res) => {
-  const result = await studiosCollection
-    .find()
-    .sort({ _id: -1 })
-    .limit(6)
-    .toArray();
-  res.send(result);
 });
 
 app.get("/studio/:id", async (req, res) => {
@@ -68,10 +54,34 @@ app.patch("/studio/:id", async (req, res) => {
   res.send(result);
 });
 
+app.delete("/studios/:id", async (req, res) => {
+  const { id } = req.params;
+  const result = await studiosCollection.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
+});
+
+app.get("/featured-studios", async (req, res) => {
+  const result = await studiosCollection
+    .find()
+    .sort({ _id: -1 })
+    .limit(6)
+    .toArray();
+  res.send(result);
+});
+
 app.get("/my-listings", async (req, res) => {
   const { email } = req.query;
   const listings = await studiosCollection.find({ userEmail: email }).toArray();
   res.send(listings);
+});
+
+app.post("/bookings", async (req, res) => {
+  const bookingData = req.body;
+  const result = await bookingsCollection.insertOne({
+    ...bookingData,
+    bookedAt: new Date(),
+  });
+  res.status(201).send(result);
 });
 
 app.get("/", (req, res) => {
