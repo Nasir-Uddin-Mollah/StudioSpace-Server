@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { MongoClient, ObjectId } from "mongodb";
 import "dotenv/config";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 const app = express();
 const PORT = 5000;
@@ -25,7 +26,35 @@ const studiosCollection = db.collection("studios");
 const bookingsCollection = db.collection("bookings");
 const wishlistCollection = db.collection("wishlist");
 
-app.post("/studios", async (req, res) => {
+
+const JWKS = createRemoteJWKSet(
+    new URL("http://localhost:3000/api/auth/jwks"),
+  );
+
+const VerifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).send({ message: "Unauthorized" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).send({ message: "Invalid token" });
+  }
+
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    req.user = payload
+    next();
+  } catch (error) {
+    return res.status(401).send({ message: "Unauthorized" });
+  }
+};
+
+// studios
+app.post("/studios", VerifyToken, async (req, res) => {
   const studio = req.body;
   const result = await studiosCollection.insertOne({
     ...studio,
@@ -45,7 +74,7 @@ app.get("/studio/:id", async (req, res) => {
   res.send(studio);
 });
 
-app.patch("/studio/:id", async (req, res) => {
+app.patch("/studio/:id", VerifyToken, async (req, res) => {
   const { id } = req.params;
   const updatedStudio = req.body;
   const result = await studiosCollection.updateOne(
@@ -55,7 +84,7 @@ app.patch("/studio/:id", async (req, res) => {
   res.send(result);
 });
 
-app.delete("/studios/:id", async (req, res) => {
+app.delete("/studios/:id", VerifyToken, async (req, res) => {
   const { id } = req.params;
   const result = await studiosCollection.deleteOne({ _id: new ObjectId(id) });
   res.send(result);
@@ -70,13 +99,15 @@ app.get("/featured-studios", async (req, res) => {
   res.send(result);
 });
 
-app.get("/my-listings", async (req, res) => {
+// listings
+app.get("/my-listings", VerifyToken, async (req, res) => {
   const { email } = req.query;
   const listings = await studiosCollection.find({ userEmail: email }).toArray();
   res.send(listings);
 });
 
-app.post("/bookings", async (req, res) => {
+// bookings
+app.post("/bookings", VerifyToken, async (req, res) => {
   const bookingData = req.body;
   const result = await bookingsCollection.insertOne({
     ...bookingData,
@@ -86,14 +117,14 @@ app.post("/bookings", async (req, res) => {
   res.status(201).send(result);
 });
 
-app.get("/bookings", async (req, res) => {
+app.get("/bookings", VerifyToken, async (req, res) => {
   const { email } = req.query;
   const query = email ? { userEmail: email } : {};
   const bookings = await bookingsCollection.find(query).toArray();
   res.send(bookings);
 });
 
-app.patch("/bookings/:id", async (req, res) => {
+app.patch("/bookings/:id", VerifyToken, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   const result = await bookingsCollection.updateOne(
@@ -103,13 +134,8 @@ app.patch("/bookings/:id", async (req, res) => {
   res.send(result);
 });
 
-app.delete("/bookings/:id", async (req, res) => {
-  const { id } = req.params;
-  const result = await bookingsCollection.deleteOne({ _id: new ObjectId(id) });
-  res.send(result);
-});
-
-app.post("/wishlist", async (req, res) => {
+// wishlist
+app.post("/wishlist", VerifyToken, async (req, res) => {
   const wishlist = req.body;
   const result = await wishlistCollection.insertOne({
     ...wishlist,
@@ -118,13 +144,13 @@ app.post("/wishlist", async (req, res) => {
   res.send(result);
 });
 
-app.get("/wishlist", async (req, res) => {
+app.get("/wishlist", VerifyToken, async (req, res) => {
   const { email } = req.query;
   const items = await wishlistCollection.find({ userEmail: email }).toArray();
   res.send(items);
 });
 
-app.delete("/wishlist", async (req, res) => {
+app.delete("/wishlist", VerifyToken, async (req, res) => {
   const { email, studioId } = req.query;
   const result = await wishlistCollection.deleteOne({
     userEmail: email,
@@ -132,8 +158,6 @@ app.delete("/wishlist", async (req, res) => {
   });
   res.send(result);
 });
-
-
 
 app.get("/", (req, res) => {
   res.send("hello world!");
