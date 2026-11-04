@@ -26,10 +26,9 @@ const studiosCollection = db.collection("studios");
 const bookingsCollection = db.collection("bookings");
 const wishlistCollection = db.collection("wishlist");
 
-
 const JWKS = createRemoteJWKSet(
-    new URL("http://localhost:3000/api/auth/jwks"),
-  );
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+);
 
 const VerifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -43,10 +42,9 @@ const VerifyToken = async (req, res, next) => {
     return res.status(401).send({ message: "Invalid token" });
   }
 
-
   try {
     const { payload } = await jwtVerify(token, JWKS);
-    req.user = payload
+    req.user = payload;
     next();
   } catch (error) {
     return res.status(401).send({ message: "Unauthorized" });
@@ -166,3 +164,5 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`server is running on port: ${PORT}`);
 });
+
+export default app;
