@@ -107,9 +107,23 @@ app.get("/my-listings", VerifyToken, async (req, res) => {
 // bookings
 app.post("/bookings", VerifyToken, async (req, res) => {
   const bookingData = req.body;
+
+  const { studioId, date } = bookingData;
+  const alreadyBooked = await bookingsCollection.findOne({
+    studioId,
+    date,
+    status: "Confirmed",
+  });
+
+  if (alreadyBooked)
+    return res.status(409).send({
+      message:
+        "This studio is already booked for this date/time slot. Please choose another slot.",
+    });
+
   const result = await bookingsCollection.insertOne({
     ...bookingData,
-    status: bookingData.status || "Pending",
+    status: "Pending",
     bookedAt: new Date(),
   });
   res.status(201).send(result);
