@@ -51,6 +51,11 @@ const VerifyToken = async (req, res, next) => {
   }
 };
 
+const toMinutes = (timeStr) => {
+  const [hours, minutes] = String(timeStr).split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
 // studios
 app.post("/studios", VerifyToken, async (req, res) => {
   const studio = req.body;
@@ -108,18 +113,42 @@ app.get("/my-listings", VerifyToken, async (req, res) => {
 app.post("/bookings", VerifyToken, async (req, res) => {
   const bookingData = req.body;
 
-  const { studioId, date } = bookingData;
-  const alreadyBooked = await bookingsCollection.findOne({
-    studioId,
-    date,
-    status: "Confirmed",
+  const { studioId, date, startTime, hours } = bookingData;
+  const durationHours = Number(hours);
+  const newStart = toMinutes(startTime);
+  const newEnd = newStart + durationHours * 60;
+
+  if (
+    !studioId ||
+    !date ||
+    Number.isNaN(newStart) ||
+    Number.isNaN(durationHours) ||
+    durationHours <= 0
+  ) {
+    return res.status(400).send({
+      message: "Invalid booking date, start time, or duration.",
+    });
+  }
+
+  const confirmedBookings = await bookingsCollection
+    .find({
+      studioId,
+      date,
+      status: "Confirmed",
+    })
+    .toArray();
+
+  const conflictingBooking = confirmedBookings.find((existing) => {
+    const existingStart = toMinutes(existing.startTime);
+    const existingEnd = existingStart + Number(existing.hours) * 60;
+    return newStart < existingEnd && newEnd > existingStart;
   });
 
-  if (alreadyBooked)
+  if (conflictingBooking) {
     return res.status(409).send({
-      message:
-        "This studio is already booked for this date/time slot. Please choose another slot.",
+      message: `This studio is already booked from ${conflictingBooking.startTime} for ${conflictingBooking.hours} hr(s) on ${date}. Please choose another time slot.`,
     });
+  }
 
   const result = await bookingsCollection.insertOne({
     ...bookingData,
